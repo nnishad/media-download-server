@@ -46,32 +46,29 @@ app.post("/get", (req, res) => {
   });
 });
 
-async function downoad_file_from_url_info(query) {
+async function downoad_file_from_url_info(query,callback) {
   fs.readFile(`public/${query}.mp3`, (err, data) => {
     if (err) {
       const url = "https://youtube.com/watch?v=";
-      const r = ytdl(url + query, { quality: "highestaudio" }).pipe(
-        fs.createWriteStream(`public/${query}.mp3`)
-      );
-      return new Promise(function (resolve, reject) {
-        r.addListener("unpipe", () => {
-          resolve(r);
-        });
-      });
+      const r =  ytdl(url + query, { quality: "highestaudio" }).pipe(
+        fs.createWriteStream(`public/${query}.mp3`).on("close",()=>{
+          console.log("done");
+        }));
+        r.addListener("close",()=>{
+          console.log("listner");
+          callback(`${query}.mp3`);
+        })
     }
     if (data) {
-      return new Promise(function (resolve, reject) {
-        resolve(`public/${query}.mp3`);
-      });
+      callback(`${query}.mp3`);
     }
   });
+        
 }
 
 app.post("/download", (req, res) => {
-  downoad_file_from_url_info(req.body.url).then((result) => {
-    res.send(
-      req.protocol + "://" + req.get("host") + "/" + req.body.url + ".mp3"
-    );
+  downoad_file_from_url_info(req.body.url,(filename)=>{
+    res.send(req.protocol+"://"+req.get("host")+"/"+filename);
   });
 });
 
